@@ -1,0 +1,94 @@
+<?xml version="1.0" ?>
+<project name="Anthill" default="banner">
+
+    <property name="tab" value="&#x0009;" />
+    <property name="siteurl" value="http://www.google.com" />
+    <property name="requiredfile" value="build.xml" />
+
+    <target name="commit" depends="test-local,commit-local-changes,build,deliver,deploy-sit,test-functional,test-vp,deploy-production">
+        <echo>/------------------------------------------------------+</echo>
+        <echo>| YOUR LOCAL CHANGES HAVE BEEN INTEGRATED SUCCESSFULLY |</echo>
+        <echo>+------------------------------------------------------/</echo>
+    </target>
+
+    <target name="banner">
+        <echo>PROJECT:${tab}${ant.project.name}${line.separator}VERSION:${tab}${ant.version}</echo>
+        <echo />
+        <echo>/-----------------------------------------+</echo>
+        <echo>| RUN 'ant commit' TO COMMIT YOUR CHANGES |</echo>
+        <echo>+-----------------------------------------/</echo>
+    </target>
+
+    <target name="test-local">
+        <echo>RUNNING NON FUNCTIONAL TESTS FOR PROJECT '${ant.project.name}'</echo>
+        <sleep seconds="3" />
+        <!-- bonus points: run this as a pre-commit hook instead and the rest as a post-commit hook -->
+        <echo>STATUS: OK</echo>
+    </target>
+
+    <target name="commit-local-changes" unless="test.local.failed" depends="test-local">
+        <echo>COMMITING LOCAL CHANGES FOR PROJECT '${ant.project.name}'</echo>
+        <sleep seconds="3" />
+        <echo>STATUS: SUCCESS</echo>
+    </target>
+
+    <target name="build">
+        <echo>BUILDING SNAPSHOT OF PROJECT '${ant.project.name}' FROM CURRENT MASTER BRANCH HEAD</echo>
+        <sleep seconds="3" />
+        <echo>STATUS: SUCCESS</echo>
+    </target>
+
+    <target name="deliver" depends="build">
+        <echo>DELIVERING SNAPSHOT BUILD OF PROJECT '${ant.project.name}' TO ARTEFACT REPOSITORY</echo>
+        <sleep seconds="3" />
+        <echo>STATUS: SUCCESS</echo>
+    </target>
+
+    <target name="deploy-sit" depends="deliver">
+        <echo>DEPLOYING PROJECT '${ant.project.name}' TO SIT ENVIRONMENT</echo>
+        <sleep seconds="3" />
+        <echo>STATUS: SUCCESS</echo>
+    </target>
+
+    <target name="test-functional" depends="deploy-sit">
+        <echo>RUNNING FUNCTIONAL TESTS FOR PROJECT '${ant.project.name}'</echo>
+        <!-- bonus points: make this asynchronous by triggering the job, move on and check for a status later -->
+        <echo>STATUS: OK</echo>
+    </target>
+
+    <target name="test-vp" depends="deploy-sit">
+        <echo>RUNNING VOLUME AND PERFORMANCE TESTS FOR PROJECT '${ant.project.name}'</echo>
+        <!-- bonus points: make this asynchronous by triggering the job, move on and check for a status later -->
+        <echo>STATUS: OK</echo>
+    </target>
+
+    <target name="deploy-production" depends="test-functional,test-vp">
+        <!-- bonus points: wait for test-functional and test-vp to finish (read status from a redis db for example) -->
+        <echo>DEPLOYING PROJECT '${ant.project.name}' TO PRODUCTION ENVIRONMENT</echo>
+        <sleep seconds="3" />
+        <echo>STATUS: SUCCESS</echo>
+        <antcall target="parachute" />
+    </target>
+
+    <target name="test-sanity">
+        <echo>RUNNING SANITY TESTS FOR PROJECT '${ant.project.name}' ON PRODUCTION</echo>
+        <echo>* checking availability of: ${siteurl}</echo>
+        <condition property="test.sanity.failed">
+            <not>
+                <http url="${siteurl}" />
+            </not>
+        </condition>
+        <echo>* checking existence of: ${requiredfile}</echo>
+        <condition property="test.sanity.failed">
+            <not>
+                <available file="${requiredfile}" />
+            </not>
+        </condition>
+    </target>
+
+    <target name="parachute" if="test.sanity.failed" depends="test-sanity">
+        <!-- the parachute - rollback to previous version if sanity checks failed here -->
+        <fail>ROLLING BACK PROJECT '${ant.project.name}' DUE TO FAILED SANITY CHECKS</fail>
+    </target>
+
+</project>
